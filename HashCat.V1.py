@@ -15,7 +15,22 @@ def configure_sshd():
 
 def get_ip_user():
     hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
+    try:
+        ip_address = socket.gethostbyname(socket.getfqdn())
+        if ip_address.startswith("127."):  # Check if it's a local IP
+            raise Exception
+    except:
+        # Try to get the external IP address if the local IP is detected
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(2)
+        try:
+            s.connect(('8.8.8.8', 80))
+            ip_address = s.getsockname()[0]
+        except:
+            ip_address = 'Unable to retrieve IP'
+        finally:
+            s.close()
+    
     user = os.getlogin()
     return ip_address, user
 
@@ -56,8 +71,6 @@ def create_hash(word, hash_type):
         return hashlib.blake2b(word.encode()).hexdigest()
     elif hash_type == "blake2s":
         return hashlib.blake2s(word.encode()).hexdigest()
-    # Add more hash types
-    # Using hashlib available functions and custom methods for rare ones.
     elif hash_type == "sha3_256":
         return hashlib.sha3_256(word.encode()).hexdigest()
     elif hash_type == "sha3_512":
@@ -104,7 +117,6 @@ def main_menu():
             print("Choose hash type:")
             hash_types = [
                 "MD5", "SHA1", "SHA256", "SHA512", "blake2b", "blake2s", "sha3_256", "sha3_512",
-                # Add more hash types as needed
             ]
             for i, h_type in enumerate(hash_types, 1):
                 print(f"{i}. {h_type}")
